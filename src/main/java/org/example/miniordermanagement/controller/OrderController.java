@@ -27,10 +27,18 @@ public class OrderController {
         return new ResponseEntity<>(reponse, HttpStatus.OK);
     }
 
-    @PostMapping("/updateOrderStatus")
-    public ResponseEntity<?> updateOrderStatus(@RequestBody String orderId){
+    @PostMapping()
+    public ResponseEntity<?> placeOrder(@RequestBody String userId){
+
+    }
+
+
+
+    @PatchMapping("/{orderId}/status")
+    public ResponseEntity<?> updateOrderStatus(@PathVariable String OrderId ){
             return null;
     }
+
 
     @GetMapping("/getAllOrder")
     public ResponseEntity<?> getAllOrder(){

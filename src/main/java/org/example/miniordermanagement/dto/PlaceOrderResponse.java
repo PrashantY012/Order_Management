@@ -1,6 +1,9 @@
 package org.example.miniordermanagement.dto;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 @Getter
 @Setter
@@ -10,6 +13,7 @@ import lombok.*;
 public class PlaceOrderResponse extends PlaceOrderRequest{
     Long paymentId;
     Long orderId;
+    List<String> productIds = new ArrayList<>();
 
 }
 

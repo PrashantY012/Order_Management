@@ -1,6 +1,6 @@
 package org.example.miniordermanagement.Service;
 import org.example.miniordermanagement.dto.CartItem;
-import org.example.miniordermanagement.util.CartKeyUtil;
+import org.example.miniordermanagement.util.RedisKeyUtil;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -24,13 +24,13 @@ public class CartService {
     }
 
     public void addItem(String userId, String productId, int quantity) {
-        String key = CartKeyUtil.cartKey(userId);
+        String key = RedisKeyUtil.cartKey(userId);
         hashOps.put(key, productId, String.valueOf(quantity));
         redisTemplate.expire(key, CART_TTL);
     }
 
     public void updateItem(String userId, String productId, int quantity) {
-        String key = CartKeyUtil.cartKey(userId);
+        String key = RedisKeyUtil.cartKey(userId);
 
         if (quantity <= 0) {
             hashOps.delete(key, productId);
@@ -41,12 +41,12 @@ public class CartService {
     }
 
     public void removeItem(String userId, String productId) {
-        hashOps.delete(CartKeyUtil.cartKey(userId), productId);
+        hashOps.delete(RedisKeyUtil.cartKey(userId), productId);
     }
 
     public List<CartItem> getCart(String userId) {
         Map<String, String> entries =
-                hashOps.entries(CartKeyUtil.cartKey(userId));
+                hashOps.entries(RedisKeyUtil.cartKey(userId));
 
         return entries.entrySet()
                 .stream()
@@ -57,13 +57,14 @@ public class CartService {
     }
 
     public void clearCart(String userId) {
-        redisTemplate.delete(CartKeyUtil.cartKey(userId));
+
+        redisTemplate.delete(RedisKeyUtil.cartKey(userId));
     }
 
 
     public boolean isCartEmpty(String userId) {
         return redisTemplate.opsForHash()
-                .size(CartKeyUtil.cartKey(userId)) == 0;
+                .size(RedisKeyUtil.cartKey(userId)) == 0;
     }
 }
 

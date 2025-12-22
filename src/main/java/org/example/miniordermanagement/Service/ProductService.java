@@ -4,6 +4,10 @@ import org.example.miniordermanagement.Service.processor.PaymentProcessor;
 import org.example.miniordermanagement.dto.ProductDto;
 import org.example.miniordermanagement.models.Product;
 import org.example.miniordermanagement.repository.ProductRepo;
+import org.example.miniordermanagement.util.ProductKeyUtil;
+import org.example.miniordermanagement.util.RedisKeyUtil;
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -15,8 +19,13 @@ public class ProductService {
     private final ProductRepo productRepo;
     public Map<String, PaymentProcessor> processors;
 
-    public ProductService(ProductRepo productRepo) {
+    private final RedisTemplate<String, String> redisTemplate;
+    private final HashOperations<String, String, String> hashOps;
+
+    public ProductService(ProductRepo productRepo, RedisTemplate<String, String> redisTemplate, HashOperations<String, String, String> hashOps) {
         this.productRepo = productRepo;
+        this.redisTemplate = redisTemplate;
+        this.hashOps = hashOps;
     }
 //    public void addProduct(Prod)
 
@@ -31,14 +40,24 @@ public class ProductService {
     public String addProduct(ProductDto productDto){
         Product product = getProductFromProductDto(productDto);
         product = productRepo.save(product);
-        return product == null ? "could not add product for id "+product.getId() : "Product added successfully for id "+product.getId();
+        //store in redis
+        if(product == null) {
+            return "could not add product for id "+product.getId();
+        } else {
+            hashOps.put(RedisKeyUtil.getProductKey(String.valueOf(product.getId())), RedisKeyUtil.getStockKey(), String.valueOf(product.getStockQuantity()));
+            return "Product added successfully for id "+product.getId();}
     }
 
 
     public String addStock(ProductDto productDto){
 //        Product product = getProductFromProductDto(productDto); //TODO: throw errors
         Integer count = productRepo.addStock(productDto.getId(), productDto.getStockQuantity());
-        return count == 0 ? "No product found for id "+productDto.getId() : "Stock updated successfully for product found for id "+productDto.getId();
+        if( count == 0 )
+            return "No product found for id: "+productDto.getId();
+        else {
+            hashOps.increment( RedisKeyUtil.getProductKey(String.valueOf(productDto.getId())), RedisKeyUtil.getStockKey(), productDto.getStockQuantity() );
+            return "Stock updated successfully for product found for id " + productDto.getId();
+        }
     }
 
 
