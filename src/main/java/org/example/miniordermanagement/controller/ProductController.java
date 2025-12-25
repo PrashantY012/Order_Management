@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
+
 
 @RestController
 @RequestMapping("/product")
@@ -21,9 +23,15 @@ public class ProductController {
         this.productRepo = productRepo;
     }
 
-    @PostMapping("/addProduct")
+    @PostMapping("")
     public ResponseEntity<?> addProduct(@RequestBody ProductDto productDto){
         String res =   productService.addProduct(productDto);
+        return ResponseEntity.ok().body(res);
+    }
+
+    @PostMapping("/batch")
+    public ResponseEntity<?> addProductInBatch(@RequestBody List<ProductDto> productDtos){
+        List<String> res =   productService.addProduct(productDtos);
         return ResponseEntity.ok().body(res);
     }
 

@@ -1,6 +1,7 @@
 package org.example.miniordermanagement.controller;
 import org.example.miniordermanagement.Service.PaymentService;
 import org.example.miniordermanagement.dto.PaymentDto;
+import org.example.miniordermanagement.dto.PaymentResultDto;
 import org.example.miniordermanagement.models.Payment;
 import org.example.miniordermanagement.repository.PaymentRepo;
 import org.springframework.http.HttpStatus;
@@ -27,7 +28,7 @@ public class PaymentController {
             return new ResponseEntity<>(res, HttpStatus.OK);
     }
 
-    @GetMapping("/getAllPayment")
+    @GetMapping("")
     public ResponseEntity<?> getAllPayment() {
         List<Payment> res = paymentService.getAllPayments();
         return new ResponseEntity<>(res, HttpStatus.OK);
@@ -39,5 +40,13 @@ public class PaymentController {
         String res = paymentService.processPayment(paymentDto.getPaymentMode(), paymentDto.getAmount());
         return ResponseEntity.ok(res);
     }
+
+
+    @PostMapping("/webhook")
+    public ResponseEntity<?> paymentStatus(@RequestBody PaymentResultDto paymentResultDto) {
+                paymentService.updatePaymentStatus(paymentResultDto);
+                return ResponseEntity.noContent().build();
+    }
+
 
 }

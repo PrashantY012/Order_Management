@@ -1,9 +1,6 @@
 package org.example.miniordermanagement.Service;
 import jakarta.transaction.Transactional;
-import org.example.miniordermanagement.dto.PlaceOrderRequest;
-import org.example.miniordermanagement.dto.PlaceOrderResponse;
-import org.example.miniordermanagement.dto.ProductDto;
-import org.example.miniordermanagement.dto.UpdateStatus;
+import org.example.miniordermanagement.dto.*;
 import org.example.miniordermanagement.enums.OrderStatus;
 import org.example.miniordermanagement.enums.PaymentStatus;
 import org.example.miniordermanagement.models.*;
@@ -11,6 +8,7 @@ import org.example.miniordermanagement.repository.CustomerRepo;
 import org.example.miniordermanagement.repository.OrderRepo;
 import org.example.miniordermanagement.repository.PaymentRepo;
 import org.example.miniordermanagement.repository.ProductRepo;
+import org.example.miniordermanagement.util.PaymentToOrderStatusMapper;
 import org.example.miniordermanagement.util.RedisKeyUtil;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -31,15 +29,23 @@ public class OrderService {
     private final RedisTemplate<String, String> redisTemplate;
     private final HashOperations<String, String, String> hashOps;
     private final DefaultRedisScript<Long> lockStockScript;
+    private final DefaultRedisScript<Long> releaseStockScript;
+    private final DefaultRedisScript<Long> commitStockScript;
+    private final DefaultRedisScript<Long> reserveStockScript;
+    private final PaymentToOrderStatusMapper paymentToOrderStatusMapper;
 
-    public OrderService(OrderRepo orderRepo, PaymentRepo paymentRepo, ProductRepo productRepo, CustomerRepo customerRepo, RedisTemplate<String, String> redisTemplate, HashOperations<String, String, String> hashOps, DefaultRedisScript<Long> lockStockScript) {
+    public OrderService(OrderRepo orderRepo, PaymentRepo paymentRepo, ProductRepo productRepo, CustomerRepo customerRepo, RedisTemplate<String, String> redisTemplate, DefaultRedisScript<Long> lockStockScript, DefaultRedisScript<Long> releaseStockScript, DefaultRedisScript<Long> commitStockScript, DefaultRedisScript<Long> reserveStockScript, PaymentToOrderStatusMapper paymentToOrderStatusMapper) {
         this.orderRepo = orderRepo;
         this.paymentRepo = paymentRepo;
         this.productRepo = productRepo;
         this.customerRepo = customerRepo;
         this.redisTemplate = redisTemplate;
-        this.hashOps = hashOps;
+        this.hashOps = redisTemplate.opsForHash();
         this.lockStockScript = lockStockScript;
+        this.releaseStockScript = releaseStockScript;
+        this.commitStockScript = commitStockScript;
+        this.reserveStockScript = reserveStockScript;
+        this.paymentToOrderStatusMapper = paymentToOrderStatusMapper;
     }
 
 
@@ -115,38 +121,17 @@ public class OrderService {
         Payment payment = Payment.builder().amount(totalPrice).status(PaymentStatus.PENDING).order(orders).build();
         payment.setStatus(PaymentStatus.PENDING);
         orders.setStatus(OrderStatus.PENDING);
-
         orderRepo.save(orders);
-        paymentRepo.save(payment);
+        paymentRepo.save(payment); //TODO: can do better, its in order repo...
         PlaceOrderResponse placeOrderResponse = PlaceOrderResponse.builder().orderId(orders.getId()).paymentId(payment.getId()).build();
         placeOrderResponse.setProductIds(entries.keySet().stream().toList());
         placeOrderResponse.setCustomerId(customer.getId());
+        boolean reservedStock = reserveStock(String.valueOf(orders.getId()), entries);
+        if(reservedStock == false){
+            throw new RuntimeException("Could not reserve stock in redis");
+        }
         return placeOrderResponse;
     }
-
-    /*
-       @param items map of productId and their stock as needed by the user on checkout
-     */
-    public boolean lockStock(String orderId, Map<String, String> items) {
-
-        List<String> stockKeys = items.keySet().stream()
-                .map(p -> RedisKeyUtil.getProductKey(p) )
-                .toList();
-
-        List<String> args = new ArrayList<>();
-        items.values().forEach(q -> args.add(q));
-        args.add(orderId);
-        args.add("600"); // 10 min lock TTL
-
-        Long result = redisTemplate.execute(
-                lockStockScript,
-                stockKeys,
-                args.toArray()
-        );
-
-        return result != null && result == 1;
-    }
-
 
 
     public Boolean updateStatus(UpdateStatus updateStatus){
@@ -163,6 +148,91 @@ public class OrderService {
 
     public List<Orders> getAllOrders(){
         return orderRepo.findAll();
+    }
+
+
+    public void updateStatus(PaymentResultDto paymentResultDto){
+        OrderStatus orderStatus = paymentToOrderStatusMapper.map(paymentResultDto.getPaymentStatus());
+        Long orderId = paymentRepo.findOrderIdByPaymentId(Long.valueOf(paymentResultDto.getPaymentId()));
+        orderRepo.updateOrderStatus(String.valueOf(orderId), orderStatus);
+        //depending on the status run the respective lua
+        Map<String, String> entries =
+                hashOps.entries(RedisKeyUtil.cartKey(paymentResultDto.getUserId()));
+        if(orderStatus == OrderStatus.CANCELLED){
+                releaseStock(String.valueOf(orderId), entries);
+        } else if(orderStatus == OrderStatus.SUCCESS){
+            commitStock(String.valueOf(orderId), entries);
+        }
+    }
+
+
+    public boolean releaseStock(String orderId, String userId){
+        Map<String, String> entries =
+                hashOps.entries(RedisKeyUtil.cartKey(userId));
+        return releaseStock(orderId, entries);
+    }
+
+    /*
+       @param items map of productId and their stock as needed by the user on checkout
+     */
+    public boolean reserveStock(String orderId, Map<String, String> items) {
+
+        List<String> stockKeys = items.keySet().stream()
+                .map(p -> RedisKeyUtil.getProductKey(p) )
+                .toList();
+
+        List<String> args = new ArrayList<>();
+        items.values().forEach(q -> args.add(q));
+        args.add(orderId);
+        args.add("600"); // 10 min lock TTL
+
+        Long result = redisTemplate.execute(
+                reserveStockScript,
+                stockKeys,
+                args.toArray()
+        );
+        System.out.println("result: " + result);
+        return result != null && result == 1;
+    }
+
+
+    public boolean releaseStock(String orderId, Map<String, String> items) {
+        List<String> stockKeys = items.keySet().stream()
+                .map(p -> RedisKeyUtil.getProductKey(p) )
+                .toList();
+
+        List<String> args = new ArrayList<>();
+        items.values().forEach(q -> args.add(q));
+        args.add(orderId);
+//        args.add("600"); // 10 min lock TTL
+
+        Long result = redisTemplate.execute(
+                releaseStockScript,
+                stockKeys,
+                args.toArray()
+        );
+        System.out.println("result: " + result);
+        return result != null && result == 1;
+    }
+
+
+    public boolean commitStock(String orderId, Map<String, String> items) {
+        List<String> stockKeys = items.keySet().stream()
+                .map(p -> RedisKeyUtil.getProductKey(p) )
+                .toList();
+
+        List<String> args = new ArrayList<>();
+        items.values().forEach(q -> args.add(q));
+        args.add(orderId);
+//        args.add("600"); // 10 min lock TTL
+
+        Long result = redisTemplate.execute(
+                commitStockScript,
+                stockKeys,
+                args.toArray()
+        );
+        System.out.println("result: " + result);
+        return result != null && result == 1;
     }
 
 

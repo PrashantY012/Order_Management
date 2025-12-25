@@ -13,6 +13,7 @@ import java.util.List;
 public class PlaceOrderResponse extends PlaceOrderRequest{
     Long paymentId;
     Long orderId;
+    @Builder.Default
     List<String> productIds = new ArrayList<>();
 
 }

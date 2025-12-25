@@ -33,13 +33,13 @@ public class CartController {
         return ResponseEntity.ok("Item added to cart");
     }
 
-    @PutMapping("/items/{productId}")
+    @PatchMapping("/items/{productId}")
     public ResponseEntity<?> updateItem(
             @PathVariable String productId,
             @RequestBody CartItem request
     ) {
         cartService.updateItem(
-                getUserId(),
+                request.getUserId(),
                 productId,
                 request.getQuantity()
         );
@@ -57,10 +57,10 @@ public class CartController {
         return ResponseEntity.ok(cartService.getCart(userId));
     }
 
-    @DeleteMapping
-    public ResponseEntity<?> clearCart() {
-        cartService.clearCart(getUserId());
-        return ResponseEntity.ok("Cart cleared");
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<?> clearCart(@PathVariable  String userId) {
+        cartService.clearCart(userId);
+        return ResponseEntity.ok("Cart cleared for user: "+userId);
     }
 
     @PostMapping("/checkout")

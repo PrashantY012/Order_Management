@@ -12,6 +12,7 @@ public class ControllerAdvice {
     @ExceptionHandler(value={RuntimeException.class})
     public ResponseEntity<?> handleException(RuntimeException ex){
         System.out.println("Exception caught in ControllerAdvice: "+ex);
+        ex.printStackTrace();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ex.getMessage());
 
     }

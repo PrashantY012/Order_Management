@@ -27,18 +27,18 @@ public class OrderController {
         return new ResponseEntity<>(reponse, HttpStatus.OK);
     }
 
+
     @PostMapping()
-    public ResponseEntity<?> placeOrder(@RequestBody String userId){
-
+    public ResponseEntity<?> placeOrderViaCart(@RequestBody PlaceOrderRequest request){
+           PlaceOrderResponse res = orderService.placeOrderViaCart(String.valueOf(request.getCustomerId()));
+           return ResponseEntity.status(HttpStatus.OK).body(res);
     }
-
 
 
     @PatchMapping("/{orderId}/status")
     public ResponseEntity<?> updateOrderStatus(@PathVariable String OrderId ){
             return null;
     }
-
 
     @GetMapping("/getAllOrder")
     public ResponseEntity<?> getAllOrder(){
@@ -52,10 +52,4 @@ public class OrderController {
         return ResponseEntity.ok().body(res);
 
     }
-
-
-
-
-
-
 }

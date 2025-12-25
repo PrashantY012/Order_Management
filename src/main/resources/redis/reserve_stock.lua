@@ -1,24 +1,25 @@
 -- KEYS = product keys (product:P1, product:P2, ...)
--- ARGV = quantities + orderId + ttl
+-- ARGV = qty1, qty2, ..., orderId, ttl
 
 local orderId = ARGV[#ARGV - 1]
 local ttl = tonumber(ARGV[#ARGV])
 
--- 1. check stock
+-- 1. check available stock
 for i = 1, #KEYS do
-	local stock = tonumber(redis.call("HGET", KEYS[i], "stock:"))
+	local available = tonumber(redis.call("HGET", KEYS[i], "stock:available"))
 	local qty = tonumber(ARGV[i])
 
-	if not stock or stock < qty then
+	if not available or available < qty then
 		return -1
 	end
 end
 
--- 2. lock stock
+-- 2. reserve stock
 for i = 1, #KEYS do
 	local qty = tonumber(ARGV[i])
 
-	redis.call("HINCRBY", KEYS[i], "stock:", -qty)
+	redis.call("HINCRBY", KEYS[i], "stock:available", -qty)
+	redis.call("HINCRBY", KEYS[i], "stock:reserve", qty)
 
 	local productId = string.sub(KEYS[i], string.len("product:") + 1)
 	local lockKey = "lock:" .. orderId .. ":" .. productId

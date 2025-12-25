@@ -17,10 +17,12 @@ public class CartService {
 
     private final RedisTemplate<String, String> redisTemplate;
     private final HashOperations<String, String, String> hashOps;
+    private final OrderService orderService;
 
-    public CartService(RedisTemplate<String, String> redisTemplate) {
+    public CartService(RedisTemplate<String, String> redisTemplate, OrderService orderService) {
         this.redisTemplate = redisTemplate;
         this.hashOps = redisTemplate.opsForHash();
+        this.orderService = orderService;
     }
 
     public void addItem(String userId, String productId, int quantity) {
@@ -57,7 +59,6 @@ public class CartService {
     }
 
     public void clearCart(String userId) {
-
         redisTemplate.delete(RedisKeyUtil.cartKey(userId));
     }
 

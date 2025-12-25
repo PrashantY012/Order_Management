@@ -15,5 +15,13 @@ public class RedisKeyUtil {
     public static String getStockKey() {
         return "stock:";
     }
+
+    public static String getAvailableStockKey() {
+        return "stock:available";
+    }
+
+    public static String getReservedStockKey(){
+        return "stock:reserve";
+    }
 }
 
