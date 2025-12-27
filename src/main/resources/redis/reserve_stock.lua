@@ -3,8 +3,17 @@
 
 local orderId = ARGV[#ARGV - 1]
 local ttl = tonumber(ARGV[#ARGV])
+local userId = ARGV[#ARGV - 2]
 
--- 1. check available stock
+
+--1. check cart lock
+local cartLockKey = "cart:lock:" .. ARGV[#ARGV - 2] -- assume ARGV[#ARGV-2] = userId
+local existingLock = redis.call("GET", cartLockKey)
+if existingLock then
+	return -2  -- cart is already locked
+end
+
+-- 2. check available stock
 for i = 1, #KEYS do
 	local available = tonumber(redis.call("HGET", KEYS[i], "stock:available"))
 	local qty = tonumber(ARGV[i])
@@ -14,7 +23,10 @@ for i = 1, #KEYS do
 	end
 end
 
--- 2. reserve stock
+--3. set cart lock
+redis.call("SET", cartLockKey, orderId, "EX", ttl)
+
+-- 4. reserve stock
 for i = 1, #KEYS do
 	local qty = tonumber(ARGV[i])
 

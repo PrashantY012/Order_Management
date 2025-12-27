@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -126,7 +127,7 @@ public class OrderService {
         PlaceOrderResponse placeOrderResponse = PlaceOrderResponse.builder().orderId(orders.getId()).paymentId(payment.getId()).build();
         placeOrderResponse.setProductIds(entries.keySet().stream().toList());
         placeOrderResponse.setCustomerId(customer.getId());
-        boolean reservedStock = reserveStock(String.valueOf(orders.getId()), entries);
+        boolean reservedStock = reserveStock(String.valueOf(orders.getId()), entries, null);
         if(reservedStock == false){
             throw new RuntimeException("Could not reserve stock in redis");
         }
@@ -155,13 +156,14 @@ public class OrderService {
         OrderStatus orderStatus = paymentToOrderStatusMapper.map(paymentResultDto.getPaymentStatus());
         Long orderId = paymentRepo.findOrderIdByPaymentId(Long.valueOf(paymentResultDto.getPaymentId()));
         orderRepo.updateOrderStatus(String.valueOf(orderId), orderStatus);
+        String userId = orderRepo.getUserIdFromOrderId(orderId).orElse(null);
         //depending on the status run the respective lua
         Map<String, String> entries =
                 hashOps.entries(RedisKeyUtil.cartKey(paymentResultDto.getUserId()));
         if(orderStatus == OrderStatus.CANCELLED){
-                releaseStock(String.valueOf(orderId), entries);
+                releaseStock(String.valueOf(orderId), entries, userId);
         } else if(orderStatus == OrderStatus.SUCCESS){
-            commitStock(String.valueOf(orderId), entries);
+            commitStock(String.valueOf(orderId), entries, userId);
         }
     }
 
@@ -169,13 +171,13 @@ public class OrderService {
     public boolean releaseStock(String orderId, String userId){
         Map<String, String> entries =
                 hashOps.entries(RedisKeyUtil.cartKey(userId));
-        return releaseStock(orderId, entries);
+        return releaseStock(orderId, entries, userId );
     }
 
     /*
        @param items map of productId and their stock as needed by the user on checkout
      */
-    public boolean reserveStock(String orderId, Map<String, String> items) {
+    public boolean reserveStock(String orderId, Map<String, String> items, String userId) {
 
         List<String> stockKeys = items.keySet().stream()
                 .map(p -> RedisKeyUtil.getProductKey(p) )
@@ -183,6 +185,7 @@ public class OrderService {
 
         List<String> args = new ArrayList<>();
         items.values().forEach(q -> args.add(q));
+        args.add(userId);
         args.add(orderId);
         args.add("600"); // 10 min lock TTL
 
@@ -196,7 +199,7 @@ public class OrderService {
     }
 
 
-    public boolean releaseStock(String orderId, Map<String, String> items) {
+    public boolean releaseStock(String orderId, Map<String, String> items, String userId) {
         List<String> stockKeys = items.keySet().stream()
                 .map(p -> RedisKeyUtil.getProductKey(p) )
                 .toList();
@@ -204,6 +207,7 @@ public class OrderService {
         List<String> args = new ArrayList<>();
         items.values().forEach(q -> args.add(q));
         args.add(orderId);
+        args.add(userId);
 //        args.add("600"); // 10 min lock TTL
 
         Long result = redisTemplate.execute(
@@ -216,7 +220,7 @@ public class OrderService {
     }
 
 
-    public boolean commitStock(String orderId, Map<String, String> items) {
+    public boolean commitStock(String orderId, Map<String, String> items, String userId) {
         List<String> stockKeys = items.keySet().stream()
                 .map(p -> RedisKeyUtil.getProductKey(p) )
                 .toList();
@@ -224,6 +228,7 @@ public class OrderService {
         List<String> args = new ArrayList<>();
         items.values().forEach(q -> args.add(q));
         args.add(orderId);
+        args.add(userId);
 //        args.add("600"); // 10 min lock TTL
 
         Long result = redisTemplate.execute(

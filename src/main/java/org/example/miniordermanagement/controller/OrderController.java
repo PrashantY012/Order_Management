@@ -40,13 +40,13 @@ public class OrderController {
             return null;
     }
 
-    @GetMapping("/getAllOrder")
+    @GetMapping("")
     public ResponseEntity<?> getAllOrder(){
         List<Orders> res = orderService.getAllOrders();
         return ResponseEntity.ok().body(res);
     }
 
-    @PostMapping("/updateStatus")
+    @PatchMapping("/updateStatus")
     public ResponseEntity<?> updateStatus(@RequestBody UpdateStatus updateStatus){
         Boolean res = orderService.updateStatus(updateStatus);
         return ResponseEntity.ok().body(res);

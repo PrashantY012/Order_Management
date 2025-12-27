@@ -26,4 +26,7 @@ for i = 1, #KEYS do
 	redis.call("SET", lockKey, qty, "EX", ttl)
 end
 
+redis.call("DEL", cartLockKey)
+
+
 return 1

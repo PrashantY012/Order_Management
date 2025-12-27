@@ -10,9 +10,9 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 public interface OrderRepo extends JpaRepository<Orders, Integer> {
     @Modifying
@@ -43,5 +43,14 @@ public interface OrderRepo extends JpaRepository<Orders, Integer> {
             @Param("paymentStatus") PaymentStatus paymentStatus,
             @Param("expiryTime") Instant expiryTime,
             Pageable pageable
+    );
+
+    @Transactional(readOnly = true)
+    @Query(""" 
+                            select o.customer.id from Orders o
+                            where id =:id
+                            """)
+    Optional<String> getUserIdFromOrderId(
+            @Param("id") Long id
     );
 }
