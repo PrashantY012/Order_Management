@@ -1,4 +1,4 @@
-package org.example.miniordermanagement.Service;
+package org.example.miniordermanagement.service;
 import jakarta.transaction.Transactional;
 import org.example.miniordermanagement.dto.CustomerDto;
 import org.example.miniordermanagement.models.Customer;

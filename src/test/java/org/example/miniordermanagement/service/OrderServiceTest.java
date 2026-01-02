@@ -1,4 +1,4 @@
-package org.example.miniordermanagement.Service;
+package org.example.miniordermanagement.service;
 
 import org.example.miniordermanagement.dto.PlaceOrderRequest;
 import org.example.miniordermanagement.dto.PlaceOrderResponse;
@@ -19,6 +19,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.RedisTemplate;
+
 import static org.assertj.core.api.Assertions.*;
 import java.math.BigDecimal;
 import java.util.List;
@@ -45,6 +48,12 @@ class OrderServiceTest {
 
     @InjectMocks
     private OrderService orderService;
+
+    @Mock
+    private RedisTemplate<String, String> redisTemplate;
+
+    @Mock
+    private HashOperations<String, String, String> hashOps;
 
     @Test
     void shouldPlaceOrderSuccessfully() {

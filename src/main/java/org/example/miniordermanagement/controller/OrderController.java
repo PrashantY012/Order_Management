@@ -1,6 +1,6 @@
 package org.example.miniordermanagement.controller;
 
-import org.example.miniordermanagement.Service.OrderService;
+import org.example.miniordermanagement.service.OrderService;
 import org.example.miniordermanagement.dto.PlaceOrderRequest;
 import org.example.miniordermanagement.dto.PlaceOrderResponse;
 import org.example.miniordermanagement.dto.UpdateStatus;
@@ -21,14 +21,17 @@ public class OrderController {
         this.orderService = orderService;
     }
 
-    @PostMapping("/initialiseOrder")
+    @PostMapping("/v1")
     public ResponseEntity<?> placeOrder(@RequestBody PlaceOrderRequest placeOrderRequest){
         PlaceOrderResponse reponse = orderService.placeOrder(placeOrderRequest);
         return new ResponseEntity<>(reponse, HttpStatus.OK);
     }
 
-
-    @PostMapping()
+    /*
+        Called when user clicks on proceed to pay,
+        Makes entry in Order and Payment Table with pending status.
+     */
+    @PostMapping("/v2")
     public ResponseEntity<?> placeOrderViaCart(@RequestBody PlaceOrderRequest request){
            PlaceOrderResponse res = orderService.placeOrderViaCart(String.valueOf(request.getCustomerId()));
            return ResponseEntity.status(HttpStatus.OK).body(res);
@@ -40,14 +43,15 @@ public class OrderController {
             return null;
     }
 
-    @GetMapping("")
+    @GetMapping()
     public ResponseEntity<?> getAllOrder(){
         List<Orders> res = orderService.getAllOrders();
         return ResponseEntity.ok().body(res);
     }
 
-    @PatchMapping("/updateStatus")
-    public ResponseEntity<?> updateStatus(@RequestBody UpdateStatus updateStatus){
+    @PatchMapping("/{orderId}/status")
+    public ResponseEntity<?> updateStatus(@RequestBody UpdateStatus updateStatus, @PathVariable String orderId){
+        updateStatus.setOrder_id(Integer.valueOf(orderId));
         Boolean res = orderService.updateStatus(updateStatus);
         return ResponseEntity.ok().body(res);
 

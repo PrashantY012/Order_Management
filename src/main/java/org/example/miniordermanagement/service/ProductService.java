@@ -1,13 +1,12 @@
-package org.example.miniordermanagement.Service;
+package org.example.miniordermanagement.service;
 import jakarta.transaction.Transactional;
-import org.example.miniordermanagement.Service.processor.PaymentProcessor;
+import org.example.miniordermanagement.service.processor.PaymentProcessor;
 import org.example.miniordermanagement.dto.ProductDto;
 import org.example.miniordermanagement.models.Product;
 import org.example.miniordermanagement.repository.ProductRepo;
 import org.example.miniordermanagement.util.RedisKeyUtil;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.scheduling.support.SimpleTriggerContext;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -29,16 +28,15 @@ public class ProductService {
         this.redisTemplate = redisTemplate;
         this.hashOps = redisTemplate.opsForHash();
     }
-//    public void addProduct(Prod)
 
     Product getProductFromProductDto(ProductDto productDto){
         return Product.builder().id(productDto.getId()).price(productDto.getPrice()).stockQuantity(productDto.getStockQuantity()).build();
     }
 
+
     ProductDto getProductDtoFromProduct(Product product){
         return ProductDto.builder().id(product.getId()).price(product.getPrice()).stockQuantity(product.getStockQuantity()).build();
     }
-
 
     public String addProduct(ProductDto productDto){
         Product product = getProductFromProductDto(productDto);

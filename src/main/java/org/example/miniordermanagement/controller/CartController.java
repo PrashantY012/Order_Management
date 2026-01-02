@@ -1,5 +1,5 @@
 package org.example.miniordermanagement.controller;
-import org.example.miniordermanagement.Service.CartService;
+import org.example.miniordermanagement.service.CartService;
 import org.example.miniordermanagement.dto.CartItem;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,7 +14,7 @@ public class CartController {
         this.cartService = cartService;
     }
 
-    // Simulated auth (replace with JWT/SecurityContext)
+    // Simulate auth (replace with JWT/SecurityContext)
     private String getUserId() {
         return "123";
     }
@@ -46,6 +46,9 @@ public class CartController {
         return ResponseEntity.ok("Cart updated");
     }
 
+    /*
+        Not needed as updateItem handles 0 item case also.
+     */
     @DeleteMapping("/items/{productId}")
     public ResponseEntity<?> removeItem(@PathVariable String productId) {
         cartService.removeItem(getUserId(), productId);

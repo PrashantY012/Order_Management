@@ -13,4 +13,9 @@ public class PaymentResultDto {
     private String paymentId;
     private PaymentStatus paymentStatus;
     private String userId;//TODO: not from here
+
+    @Override
+    public String toString() {
+        return "paymentId: "+paymentId+", paymentStatus: "+paymentStatus+", userId: "+userId;
+    }
 }

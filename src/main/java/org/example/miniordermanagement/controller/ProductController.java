@@ -1,5 +1,5 @@
 package org.example.miniordermanagement.controller;
-import org.example.miniordermanagement.Service.ProductService;
+import org.example.miniordermanagement.service.ProductService;
 import org.example.miniordermanagement.dto.ProductDto;
 import org.example.miniordermanagement.models.Product;
 import org.example.miniordermanagement.repository.ProductRepo;
@@ -35,17 +35,19 @@ public class ProductController {
         return ResponseEntity.ok().body(res);
     }
 
-    @PostMapping("/addStock")
+    @PostMapping("/v1")
     public ResponseEntity<?> addStock(@RequestBody ProductDto productDto){
         String res =   productService.addStock(productDto);
         return ResponseEntity.ok().body(res);
     }
 
-    @PostMapping("/reduceStock")
-    public ResponseEntity<?> removeStock(@RequestBody ProductDto productDto){
+    @PatchMapping("/{productId}")
+    public ResponseEntity<?> removeStock(@RequestBody ProductDto productDto, @PathVariable String productId){
+        productDto.setId(Long.valueOf(productId));
         String res = productService.reduceStock(productDto);
         return ResponseEntity.ok().body(res);
     }
+
 
     @GetMapping()
     public Page<Product> getOrders(Pageable pageable) {

@@ -1,4 +1,4 @@
-package org.example.miniordermanagement.Service.processor;
+package org.example.miniordermanagement.service.processor;
 
 import java.math.BigDecimal;
 

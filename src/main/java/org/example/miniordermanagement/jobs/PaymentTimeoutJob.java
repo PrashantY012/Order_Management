@@ -1,7 +1,7 @@
 package org.example.miniordermanagement.jobs;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.miniordermanagement.Service.OrderService;
+import org.example.miniordermanagement.service.OrderService;
 import org.example.miniordermanagement.enums.OrderStatus;
 import org.example.miniordermanagement.enums.PaymentStatus;
 import org.example.miniordermanagement.models.Orders;
@@ -11,7 +11,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.domain.Pageable;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -29,7 +29,7 @@ public class PaymentTimeoutJob {
     private static final Duration PAYMENT_TIMEOUT = Duration.ofMinutes(15);
     private static final int BATCH_SIZE = 50;
 
-    @Scheduled(fixedRate = 1000*5) // every 1 minute
+    @Scheduled(fixedRate = 1000*5*100) // every 1 minute
     @Transactional
     public void handlePaymentTimeouts() {
         System.out.println("DarkDuel cron is running");

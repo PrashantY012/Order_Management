@@ -1,9 +1,8 @@
 package org.example.miniordermanagement.controller;
-import org.example.miniordermanagement.Service.PaymentService;
+import org.example.miniordermanagement.service.PaymentService;
 import org.example.miniordermanagement.dto.PaymentDto;
 import org.example.miniordermanagement.dto.PaymentResultDto;
 import org.example.miniordermanagement.models.Payment;
-import org.example.miniordermanagement.repository.PaymentRepo;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

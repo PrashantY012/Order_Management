@@ -1,4 +1,4 @@
-package org.example.miniordermanagement.Service;
+package org.example.miniordermanagement.service;
 import org.springframework.stereotype.Service;
 
 @Service

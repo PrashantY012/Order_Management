@@ -1,4 +1,4 @@
-package org.example.miniordermanagement.Service;
+package org.example.miniordermanagement.service;
 import org.example.miniordermanagement.dto.CartItem;
 import org.example.miniordermanagement.util.RedisKeyUtil;
 import org.springframework.data.redis.core.HashOperations;

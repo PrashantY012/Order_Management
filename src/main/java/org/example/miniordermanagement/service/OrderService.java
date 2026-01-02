@@ -1,8 +1,9 @@
-package org.example.miniordermanagement.Service;
+package org.example.miniordermanagement.service;
 import jakarta.transaction.Transactional;
 import org.example.miniordermanagement.dto.*;
 import org.example.miniordermanagement.enums.OrderStatus;
 import org.example.miniordermanagement.enums.PaymentStatus;
+import org.example.miniordermanagement.exceptions.LockNotAvailableException;
 import org.example.miniordermanagement.models.*;
 import org.example.miniordermanagement.repository.CustomerRepo;
 import org.example.miniordermanagement.repository.OrderRepo;
@@ -18,7 +19,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Service
 @Transactional
@@ -155,7 +155,7 @@ public class OrderService {
     public void updateStatus(PaymentResultDto paymentResultDto){
         OrderStatus orderStatus = paymentToOrderStatusMapper.map(paymentResultDto.getPaymentStatus());
         Long orderId = paymentRepo.findOrderIdByPaymentId(Long.valueOf(paymentResultDto.getPaymentId()));
-        orderRepo.updateOrderStatus(String.valueOf(orderId), orderStatus);
+//        orderRepo.updateOrderStatus(String.valueOf(orderId), orderStatus);
         String userId = orderRepo.getUserIdFromOrderId(orderId).orElse(null);
         //depending on the status run the respective lua
         Map<String, String> entries =
@@ -163,9 +163,40 @@ public class OrderService {
         if(orderStatus == OrderStatus.CANCELLED){
                 releaseStock(String.valueOf(orderId), entries, userId);
         } else if(orderStatus == OrderStatus.SUCCESS){
-            commitStock(String.valueOf(orderId), entries, userId);
+            boolean done = commitStock(String.valueOf(orderId), entries, userId);
+            if(done){
+                handlePaymentSuccess(Math.toIntExact(orderId));
+            }
         }
     }
+
+    @Transactional
+    public void handlePaymentSuccess(Integer orderId) {
+
+        Orders order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found for orderId: "+orderId));
+
+        // Idempotency check
+        if (order.getStatus() == OrderStatus.SUCCESS) {
+            return;
+        }
+
+        // Reduce stock
+        for (OrderItem item : order.getItems()) {
+            Product product = item.getProduct();
+
+            if (product.getStockQuantity() < item.getQuantity()) {
+                throw new RuntimeException("Insufficient stock for product: "+product.getId());
+            }
+
+            product.setStockQuantity(product.getStockQuantity() - item.getQuantity());
+            productRepo.save(product);
+        }
+
+        order.setStatus(OrderStatus.SUCCESS);
+        orderRepo.save(order);
+    }
+
 
 
     public boolean releaseStock(String orderId, String userId){
@@ -194,6 +225,10 @@ public class OrderService {
                 stockKeys,
                 args.toArray()
         );
+
+        if(result == -2){
+            throw new LockNotAvailableException("Cart is already locked for user:"+userId);
+        }
         System.out.println("result: " + result);
         return result != null && result == 1;
     }
