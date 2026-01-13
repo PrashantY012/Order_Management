@@ -161,7 +161,7 @@ public class OrderService {
         Map<String, String> entries =
                 hashOps.entries(RedisKeyUtil.cartKey(paymentResultDto.getUserId()));
         if(orderStatus == OrderStatus.CANCELLED){
-                releaseStock(String.valueOf(orderId), entries, userId);
+                releaseStock(entries, userId);
         } else if(orderStatus == OrderStatus.SUCCESS){
             boolean done = commitStock(String.valueOf(orderId), entries, userId);
             if(done){
@@ -198,11 +198,10 @@ public class OrderService {
     }
 
 
-
     public boolean releaseStock(String orderId, String userId){
         Map<String, String> entries =
                 hashOps.entries(RedisKeyUtil.cartKey(userId));
-        return releaseStock(orderId, entries, userId );
+        return releaseStock(entries, userId );
     }
 
     /*
@@ -234,14 +233,13 @@ public class OrderService {
     }
 
 
-    public boolean releaseStock(String orderId, Map<String, String> items, String userId) {
+    public Boolean releaseStock(Map<String, String> items, String userId) {
         List<String> stockKeys = items.keySet().stream()
                 .map(p -> RedisKeyUtil.getProductKey(p) )
                 .toList();
 
         List<String> args = new ArrayList<>();
         items.values().forEach(q -> args.add(q));
-        args.add(orderId);
         args.add(userId);
 //        args.add("600"); // 10 min lock TTL
 

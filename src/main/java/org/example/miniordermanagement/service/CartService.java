@@ -46,16 +46,24 @@ public class CartService {
         hashOps.delete(RedisKeyUtil.cartKey(userId), productId);
     }
 
+    /*
+            If cart is locked, unlock it, reset the entries that were there in cache.
+            Pending status orders will themselves become expired after cron, new pg page, new lock.
+     */
     public List<CartItem> getCart(String userId) {
         Map<String, String> entries =
                 hashOps.entries(RedisKeyUtil.cartKey(userId));
 
-        return entries.entrySet()
+        List<CartItem> cartItemList = entries.entrySet()
                 .stream()
                 .map(e -> new CartItem(
                         e.getKey(),
                         Integer.parseInt(e.getValue())))
                 .toList();
+
+        orderService.releaseStock(entries, userId);
+        return cartItemList;
+
     }
 
     public void clearCart(String userId) {

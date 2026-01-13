@@ -38,11 +38,6 @@ public class OrderController {
     }
 
 
-    @PatchMapping("/{orderId}/status")
-    public ResponseEntity<?> updateOrderStatus(@PathVariable String OrderId ){
-            return null;
-    }
-
     @GetMapping()
     public ResponseEntity<?> getAllOrder(){
         List<Orders> res = orderService.getAllOrders();
