@@ -24,6 +24,8 @@ public class Customer {
 
     private String email;
 
+    private String password;
+
     @Column(name="create_at")
     @CreationTimestamp
     private Instant createdAt;

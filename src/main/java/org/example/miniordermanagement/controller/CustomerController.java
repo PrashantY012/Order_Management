@@ -18,11 +18,12 @@ public class CustomerController {
     }
 
     @Operation(summary = "Register a customer by providing their name and email")
-    @PostMapping()
+    @PostMapping("/auth")
     public ResponseEntity<?> registerCustomer(@RequestBody CustomerDto customerDto){
         String res = customerService.registerCustomer(customerDto);
         return ResponseEntity.ok().body(res);
     }
+
 
     @GetMapping("/{email}")
     public ResponseEntity<?> getUser(@PathVariable String email){
